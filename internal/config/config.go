@@ -80,7 +80,7 @@ type HealthChecksConfig struct {
 
 func DefaultObservabilityConfig() *ObservabilityConfig {
 	return &ObservabilityConfig{
-		ServiceName: "Aeris",
+		ServiceName: "Aegis",
 		Environment: "development",
 		Logging: LoggingConfig{
 			Level:              "info",
