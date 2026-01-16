@@ -17,7 +17,7 @@ In financial systems, "close enough" is a failure. Aegis solves the hardest prob
 
 | Component               | Technology          | Purpose                                             |
 | ----------------------- | ------------------- | --------------------------------------------------- |
-| **Language**            | Go 1.21+            | High-performance concurrency                        |
+| **Language**            | Go 1.25.5+          | High-performance concurrency                        |
 | **Database**            | PostgreSQL + pgx    | ACID-compliant transactions with native driver      |
 | **Message Broker**      | Apache Kafka        | Event-driven orchestration via transactional outbox |
 | **Distributed Locking** | Redis               | Idempotency keys and pessimistic locking            |
