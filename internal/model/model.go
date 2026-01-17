@@ -60,10 +60,12 @@ type TransactionOutbox struct {
 	EventType     string          `json:"event_type" validate:"required"`
 	Payload       json.RawMessage `json:"payload" validate:"required"`
 	PartitionKey  string          `json:"partition_key" validate:"required"`
-	Status        string          `json:"status" validate:"required,oneof=pending processed failed"`
+	Status        string          `json:"status" validate:"required,oneof=pending processed failed dlq"`
 	CorrelationID uuid.UUID       `json:"correlation_id" validate:"required"`
 	RetryCount    int             `json:"retry_count" validate:"gte=0"`
 	LastError     string          `json:"last_error,omitempty"`
+	NextRetryAt   time.Time       `json:"next_retry_at"`
+	MaxRetries    int             `json:"max_retries" validate:"gte=0 default=5"`
 	Model
 }
 
