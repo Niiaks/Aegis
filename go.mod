@@ -10,6 +10,7 @@ require (
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/newrelic/go-agent/v3 v3.42.0
+	github.com/newrelic/go-agent/v3/integrations/nrgochi v1.0.2
 	github.com/rs/zerolog v1.34.0
 )
 
