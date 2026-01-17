@@ -7,6 +7,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/logger"
 	"github.com/Niiaks/Aegis/internal/server"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -68,3 +69,12 @@ func (ce *ContextEnhancer) extractUserId(r *http.Request) string {
 // 	}
 // 	return ""
 // }
+
+// GetLogger retrieves the logger from the context.
+func GetLogger(ctx context.Context) *zerolog.Logger {
+	if logger, ok := ctx.Value(LoggerKey).(*zerolog.Logger); ok {
+		return logger
+	}
+	logger := zerolog.Nop()
+	return &logger
+}
