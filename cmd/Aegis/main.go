@@ -13,6 +13,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/router"
 	"github.com/Niiaks/Aegis/internal/server"
 	"github.com/Niiaks/Aegis/internal/user"
+	"github.com/Niiaks/Aegis/internal/wallet"
 )
 
 func main() {
@@ -37,13 +38,17 @@ func main() {
 	}
 
 	userRepo := user.NewUserRepository(db.Pool)
+	walletRepo := wallet.NewWalletRepository(db.Pool)
 
 	userService := user.NewUserService(userRepo)
+	walletService := wallet.NewWalletService(walletRepo)
 
 	userHandler := user.NewUserHandler(userService)
+	walletHandler := wallet.NewWalletHandler(walletService)
 
 	handlers := &router.Handlers{
-		User: userHandler,
+		User:   userHandler,
+		Wallet: walletHandler,
 	}
 
 	r := router.NewRouter(srv, handlers)

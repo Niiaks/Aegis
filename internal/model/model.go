@@ -24,8 +24,8 @@ type User struct {
 type Wallet struct {
 	ID            uuid.UUID `json:"id"`
 	UserID        uuid.UUID `json:"user_id" validate:"required"`
-	Balance       int64     `json:"balance" validate:"required,gte=0"`
-	LockedBalance int64     `json:"locked_balance" validate:"required,gte=0"`
+	Balance       int64     `json:"balance"`
+	LockedBalance int64     `json:"locked_balance"`
 	Currency      string    `json:"currency" validate:"required,len=3"`
 	Type          string    `json:"type" validate:"required,oneof=holding settlement revenue"`
 	Model

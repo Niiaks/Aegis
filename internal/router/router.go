@@ -4,13 +4,13 @@ import (
 	"github.com/Niiaks/Aegis/internal/middleware"
 	"github.com/Niiaks/Aegis/internal/server"
 	"github.com/Niiaks/Aegis/internal/user"
+	"github.com/Niiaks/Aegis/internal/wallet"
 	"github.com/go-chi/chi/v5"
 )
 
 type Handlers struct {
-	User *user.UserHandler
-	// Wallet  *wallet.WalletHandler
-	// Payment *payment.PaymentHandler
+	User   *user.UserHandler
+	Wallet *wallet.WalletHandler
 }
 
 func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
@@ -30,6 +30,11 @@ func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
 		// User routes
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/register", h.User.CreateUser)
+		})
+
+		// Wallet routes
+		r.Route("/wallets", func(r chi.Router) {
+			r.Post("/create", h.Wallet.CreateWallet)
 		})
 
 	})
