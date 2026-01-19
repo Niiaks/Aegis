@@ -42,5 +42,10 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	response := map[string]interface{}{
+		"message": "User created successfully",
+		"user_id": user.ID,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
