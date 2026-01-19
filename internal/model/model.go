@@ -13,7 +13,7 @@ type Model struct {
 }
 
 type User struct {
-	ID         uuid.UUID `json:"id" validate:"required"`
+	ID         uuid.UUID `json:"id"`
 	PlatformID string    `json:"platform_id" validate:"required"`
 	PspID      string    `json:"psp_id" validate:"required"`
 	Name       string    `json:"name" validate:"required,min=2,max=100"`
@@ -22,7 +22,7 @@ type User struct {
 }
 
 type Wallet struct {
-	ID            uuid.UUID `json:"id" validate:"required"`
+	ID            uuid.UUID `json:"id"`
 	UserID        uuid.UUID `json:"user_id" validate:"required"`
 	Balance       int64     `json:"balance" validate:"required,gte=0"`
 	LockedBalance int64     `json:"locked_balance" validate:"required,gte=0"`
@@ -32,7 +32,7 @@ type Wallet struct {
 }
 
 type LedgerEntry struct {
-	ID            int64     `json:"id" validate:"required"`
+	ID            int64     `json:"id"`
 	TransactionID uuid.UUID `json:"transaction_id" validate:"required"`
 	AccountID     uuid.UUID `json:"account_id" validate:"required"`
 	Debit         int64     `json:"debit" validate:"gte=0"`
@@ -43,7 +43,7 @@ type LedgerEntry struct {
 }
 
 type Transaction struct {
-	ID             uuid.UUID `json:"id" validate:"required"`
+	ID             uuid.UUID `json:"id"`
 	IdempotencyKey string    `json:"idempotency_key" validate:"required"`
 	UserID         uuid.UUID `json:"user_id" validate:"required"`
 	Amount         int64     `json:"amount" validate:"required,gte=0"`
@@ -70,7 +70,7 @@ type TransactionOutbox struct {
 }
 
 type PspWebhook struct {
-	ID      uuid.UUID       `json:"id" validate:"required"`
+	ID      uuid.UUID       `json:"id"`
 	EventID string          `json:"event_id" validate:"required"`
 	Payload json.RawMessage `json:"payload" validate:"required"`
 	Status  string          `json:"status" validate:"required,oneof=received error processed"`
@@ -78,14 +78,14 @@ type PspWebhook struct {
 }
 
 type ReconciliationRun struct {
-	ID      uuid.UUID `json:"id" validate:"required"`
+	ID      uuid.UUID `json:"id"`
 	RunDate time.Time `json:"run_date" validate:"required"`
 	Status  string    `json:"status" validate:"required,oneof=discrepancy matched"`
 	Model
 }
 
 type Discrepancy struct {
-	ID                  uuid.UUID `json:"id" validate:"required"`
+	ID                  uuid.UUID `json:"id"`
 	ReconciliationRunID uuid.UUID `json:"reconciliation_run_id" validate:"required"`
 	ExpectedAmount      int64     `json:"expected_amount" validate:"required"`
 	ActualAmount        int64     `json:"actual_amount" validate:"required"`
