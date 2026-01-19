@@ -93,3 +93,15 @@ type Discrepancy struct {
 	Status              string    `json:"status" validate:"required,oneof=unresolved resolved"`
 	Model
 }
+
+type IdempotencyKey struct {
+	ID           uuid.UUID       `json:"id"`
+	Key          string          `json:"key" validate:"required"`
+	RequestHash  string          `json:"request_hash" validate:"required,len=64"`
+	RequestPath  string          `json:"request_path" validate:"required"`
+	ResponseCode int             `json:"response_code,omitempty"`
+	ResponseBody json.RawMessage `json:"response_body,omitempty"`
+	UserID       *uuid.UUID      `json:"user_id,omitempty"`
+	ExpiresAt    time.Time       `json:"expires_at" validate:"required"`
+	CreatedAt    time.Time       `json:"created_at"`
+}
