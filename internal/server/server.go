@@ -21,11 +21,6 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, ls *loggerPkg.LoggerService, db *database.Database) (*Server, error) {
-	db, err := database.New(cfg, logger, ls)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
-	}
-
 	return &Server{
 		Config:        cfg,
 		Logger:        logger,

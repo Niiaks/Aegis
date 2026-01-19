@@ -3,124 +3,125 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
-	_ "github.com/joho/godotenv/autoload"
-	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/v2"
-	"github.com/rs/zerolog"
+	"github.com/joho/godotenv"
 )
 
+func init() {
+	// Load .env file - ignore error if file doesn't exist
+	if err := godotenv.Load(); err != nil {
+		fmt.Printf("Note: .env file not found or could not be loaded: %v\n", err)
+	}
+}
+
 type Config struct {
-	Primary       PrimaryConfig        `koanf:"primary" validate:"required"`
-	Database      DatabaseConfig       `koanf:"database" validate:"required"`
-	Server        ServerConfig         `koanf:"server" validate:"required"`
-	Redis         RedisConfig          `koanf:"redis" validate:"required"`
-	Observability *ObservabilityConfig `koanf:"observability" validate:"required"`
+	Primary       PrimaryConfig
+	Database      DatabaseConfig
+	Server        ServerConfig
+	Redis         RedisConfig
+	Observability *ObservabilityConfig
 }
 
 type PrimaryConfig struct {
-	Env string `koanf:"env" validate:"required"`
+	Env string
 }
 
 type DatabaseConfig struct {
-	Host            string `koanf:"host" validate:"required"`
-	Port            int    `koanf:"port" validate:"required"`
-	User            string `koanf:"user" validate:"required"`
-	Password        string `koanf:"password"`
-	Name            string `koanf:"name" validate:"required"`
-	SSLMode         string `koanf:"ssl_mode" validate:"required"`
-	MaxOpenConns    int    `koanf:"max_open_conns" validate:"required"`
-	MaxIdleConns    int    `koanf:"max_idle_conns" validate:"required"`
-	ConnMaxLifetime int    `koanf:"conn_max_lifetime" validate:"required"`
-	ConnMaxIdleTime int    `koanf:"conn_max_idle_time" validate:"required"`
+	Host            string
+	Port            int
+	User            string
+	Password        string
+	Name            string
+	SSLMode         string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime int
+	ConnMaxIdleTime int
 }
 
 type ServerConfig struct {
-	Port               string   `koanf:"port" validate:"required"`
-	ReadTimeout        int      `koanf:"read_timeout" validate:"required"`
-	WriteTimeout       int      `koanf:"write_timeout" validate:"required"`
-	IdleTimeout        int      `koanf:"idle_timeout" validate:"required"`
-	CORSAllowedOrigins []string `koanf:"cors_allowed_origins" validate:"required"`
+	Port               string
+	ReadTimeout        int
+	WriteTimeout       int
+	IdleTimeout        int
+	CORSAllowedOrigins []string
 }
 
 type RedisConfig struct {
-	Address string `koanf:"address" validate:"required"`
+	Address string
 }
 
 type ObservabilityConfig struct {
-	ServiceName  string             `koanf:"service_name" validate:"required"`
-	Environment  string             `koanf:"environment" validate:"required"`
-	Logging      LoggingConfig      `koanf:"logging" validate:"required"`
-	NewRelic     NewRelicConfig     `koanf:"new_relic" validate:"required"`
-	HealthChecks HealthChecksConfig `koanf:"health_checks" validate:"required"`
+	ServiceName  string
+	Environment  string
+	Logging      LoggingConfig
+	NewRelic     NewRelicConfig
+	HealthChecks HealthChecksConfig
 }
 
 type LoggingConfig struct {
-	Level              string        `koanf:"level" validate:"required"`
-	Format             string        `koanf:"format" validate:"required"`
-	SlowQueryThreshold time.Duration `koanf:"slow_query_threshold"`
+	Level              string
+	Format             string
+	SlowQueryThreshold time.Duration
 }
 
 type NewRelicConfig struct {
-	LicenseKey                string `koanf:"license_key" validate:"required"`
-	AppLogForwardingEnabled   bool   `koanf:"app_log_forwarding_enabled"`
-	DistributedTracingEnabled bool   `koanf:"distributed_tracing_enabled"`
-	DebugLogging              bool   `koanf:"debug_logging"`
+	LicenseKey                string
+	AppLogForwardingEnabled   bool
+	DistributedTracingEnabled bool
+	DebugLogging              bool
 }
 
 type HealthChecksConfig struct {
-	Enabled  bool          `koanf:"enabled"`
-	Interval time.Duration `koanf:"interval" validate:"min=1s"`
-	Timeout  time.Duration `koanf:"timeout" validate:"min=1s"`
-	Checks   []string      `koanf:"checks"`
+	Enabled  bool
+	Interval time.Duration
+	Timeout  time.Duration
+	Checks   []string
 }
 
-func DefaultObservabilityConfig() *ObservabilityConfig {
-	return &ObservabilityConfig{
-		ServiceName: "Aegis",
-		Environment: "development",
-		Logging: LoggingConfig{
-			Level:              "info",
-			Format:             "json",
-			SlowQueryThreshold: 100 * time.Millisecond,
-		},
-		NewRelic: NewRelicConfig{
-			LicenseKey:                "",
-			AppLogForwardingEnabled:   true,
-			DistributedTracingEnabled: true,
-			DebugLogging:              false,
-		},
-		HealthChecks: HealthChecksConfig{
-			Enabled:  true,
-			Interval: 30 * time.Second,
-			Timeout:  5 * time.Second,
-			Checks:   []string{"database", "redis", "kafka"},
-		},
+// Helper functions for parsing env vars
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
+	return fallback
 }
 
-func (c *ObservabilityConfig) Validate() error {
-	if c.ServiceName == "" {
-		return fmt.Errorf("service_name is required")
+func getEnvInt(key string, fallback int) int {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.Atoi(value); err == nil {
+			return i
+		}
 	}
+	return fallback
+}
 
-	// Validate log level
-	validLevels := map[string]bool{
-		"debug": true, "info": true, "warn": true, "error": true,
+func getEnvBool(key string, fallback bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if b, err := strconv.ParseBool(value); err == nil {
+			return b
+		}
 	}
-	if !validLevels[c.Logging.Level] {
-		return fmt.Errorf("invalid logging level: %s (must be one of: debug, info, warn, error)", c.Logging.Level)
-	}
+	return fallback
+}
 
-	// Validate slow query threshold
-	if c.Logging.SlowQueryThreshold < 0 {
-		return fmt.Errorf("logging slow_query_threshold must be non-negative")
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if d, err := time.ParseDuration(value); err == nil {
+			return d
+		}
 	}
+	return fallback
+}
 
-	return nil
+func getEnvSlice(key string, fallback []string) []string {
+	if value := os.Getenv(key); value != "" {
+		return strings.Split(value, ",")
+	}
+	return fallback
 }
 
 func (c *ObservabilityConfig) GetLogLevel() string {
@@ -142,44 +143,62 @@ func (c *ObservabilityConfig) IsProduction() bool {
 }
 
 func LoadConfig() (*Config, error) {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
-
-	k := koanf.New(".")
-
-	err := k.Load(env.Provider("AEGIS_", ".", func(s string) string {
-		return strings.ToLower(strings.TrimPrefix(s, "AEGIS_"))
-	}), nil)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("could not initialize env variables")
+	cfg := &Config{
+		Primary: PrimaryConfig{
+			Env: getEnv("AEGIS_ENV", "development"),
+		},
+		Database: DatabaseConfig{
+			Host:            getEnv("AEGIS_DB_HOST", "localhost"),
+			Port:            getEnvInt("AEGIS_DB_PORT", 5432),
+			User:            getEnv("AEGIS_DB_USER", "aegis"),
+			Password:        getEnv("AEGIS_DB_PASSWORD", ""),
+			Name:            getEnv("AEGIS_DB_NAME", "aegis"),
+			SSLMode:         getEnv("AEGIS_DB_SSLMODE", "disable"),
+			MaxOpenConns:    getEnvInt("AEGIS_DB_MAX_OPEN_CONNS", 25),
+			MaxIdleConns:    getEnvInt("AEGIS_DB_MAX_IDLE_CONNS", 10),
+			ConnMaxLifetime: getEnvInt("AEGIS_DB_CONN_MAX_LIFETIME", 300),
+			ConnMaxIdleTime: getEnvInt("AEGIS_DB_CONN_MAX_IDLE_TIME", 60),
+		},
+		Server: ServerConfig{
+			Port:               getEnv("AEGIS_SERVER_PORT", "8080"),
+			ReadTimeout:        getEnvInt("AEGIS_SERVER_READ_TIMEOUT", 30),
+			WriteTimeout:       getEnvInt("AEGIS_SERVER_WRITE_TIMEOUT", 30),
+			IdleTimeout:        getEnvInt("AEGIS_SERVER_IDLE_TIMEOUT", 60),
+			CORSAllowedOrigins: getEnvSlice("AEGIS_SERVER_CORS_ORIGINS", []string{"*"}),
+		},
+		Redis: RedisConfig{
+			Address: getEnv("AEGIS_REDIS_ADDRESS", "localhost:6379"),
+		},
+		Observability: &ObservabilityConfig{
+			ServiceName: "Aegis",
+			Environment: getEnv("AEGIS_ENV", "development"),
+			Logging: LoggingConfig{
+				Level:              getEnv("AEGIS_LOG_LEVEL", "debug"),
+				Format:             getEnv("AEGIS_LOG_FORMAT", "console"),
+				SlowQueryThreshold: getEnvDuration("AEGIS_LOG_SLOW_QUERY_THRESHOLD", 100*time.Millisecond),
+			},
+			NewRelic: NewRelicConfig{
+				LicenseKey:                getEnv("AEGIS_NEWRELIC_LICENSE_KEY", ""),
+				AppLogForwardingEnabled:   getEnvBool("AEGIS_NEWRELIC_LOG_FORWARDING", true),
+				DistributedTracingEnabled: getEnvBool("AEGIS_NEWRELIC_DISTRIBUTED_TRACING", true),
+				DebugLogging:              getEnvBool("AEGIS_NEWRELIC_DEBUG", false),
+			},
+			HealthChecks: HealthChecksConfig{
+				Enabled:  getEnvBool("AEGIS_HEALTHCHECK_ENABLED", true),
+				Interval: getEnvDuration("AEGIS_HEALTHCHECK_INTERVAL", 30*time.Second),
+				Timeout:  getEnvDuration("AEGIS_HEALTHCHECK_TIMEOUT", 5*time.Second),
+				Checks:   getEnvSlice("AEGIS_HEALTHCHECK_CHECKS", []string{"database", "redis"}),
+			},
+		},
 	}
 
-	mainConfig := &Config{}
-
-	err = k.Unmarshal(".", mainConfig)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("could not unmarshal config")
+	// Validate required fields
+	if cfg.Database.Host == "" {
+		return nil, fmt.Errorf("AEGIS_DB_HOST is required")
+	}
+	if cfg.Database.Name == "" {
+		return nil, fmt.Errorf("AEGIS_DB_NAME is required")
 	}
 
-	validate := validator.New()
-	err = validate.Struct(mainConfig)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("could not validate config")
-	}
-
-	// Set default observability config if not provided
-	if mainConfig.Observability == nil {
-		mainConfig.Observability = DefaultObservabilityConfig()
-	}
-
-	// Override service name and environment from primary config
-	mainConfig.Observability.ServiceName = "Aegis"
-	mainConfig.Observability.Environment = mainConfig.Primary.Env
-
-	// Validate observability config
-	if err := mainConfig.Observability.Validate(); err != nil {
-		logger.Fatal().Err(err).Msg("invalid observability config")
-	}
-
-	return mainConfig, nil
-
+	return cfg, nil
 }

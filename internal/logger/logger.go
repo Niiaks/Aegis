@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Niiaks/Aegis/internal/config"
 	"github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzerolog"
@@ -171,5 +172,11 @@ func GetPgxTraceLogLevel(level zerolog.Level) int {
 		return 2
 	default:
 		return 0
+	}
+}
+
+func (ls *LoggerService) Shutdown() {
+	if ls.nrApp != nil {
+		ls.nrApp.Shutdown(10 * time.Second)
 	}
 }

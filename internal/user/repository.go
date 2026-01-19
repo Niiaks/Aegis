@@ -11,7 +11,6 @@ import (
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *model.User) error
-	GetUserByID(ctx context.Context, id string) (*model.User, error)
 }
 
 type UserRepo struct {

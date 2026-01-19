@@ -5,13 +5,13 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-type Middleware struct {
+type Middlewares struct {
 	Global          *Global
 	ContextEnhancer *ContextEnhancer
-	Tracing         *Tracing
+	Tracing         *TracingMiddleware
 }
 
-func NewMiddleware(s *server.Server) *Middleware {
+func NewMiddlewares(s *server.Server) *Middlewares {
 
 	var nrApp *newrelic.Application
 
@@ -19,7 +19,7 @@ func NewMiddleware(s *server.Server) *Middleware {
 		nrApp = s.LoggerService.GetApplication()
 	}
 
-	return &Middleware{
+	return &Middlewares{
 		Global:          NewGlobal(s),
 		ContextEnhancer: NewContextEnhancer(s),
 		Tracing:         NewTracing(nrApp),

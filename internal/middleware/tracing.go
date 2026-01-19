@@ -7,17 +7,17 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-type Tracing struct {
+type TracingMiddleware struct {
 	nrApp *newrelic.Application
 }
 
-func NewTracing(nrApp *newrelic.Application) *Tracing {
-	return &Tracing{
+func NewTracing(nrApp *newrelic.Application) *TracingMiddleware {
+	return &TracingMiddleware{
 		nrApp: nrApp,
 	}
 }
 
-func (t *Tracing) NewRelicMiddleware() func(http.Handler) http.Handler {
+func (t *TracingMiddleware) NewRelicMiddleware() func(http.Handler) http.Handler {
 	if t.nrApp == nil {
 		return func(next http.Handler) http.Handler {
 			return next
@@ -27,7 +27,7 @@ func (t *Tracing) NewRelicMiddleware() func(http.Handler) http.Handler {
 }
 
 // EnhanceTracing adds custom attributes to the New Relic transaction.
-func (t *Tracing) EnhanceTracing(next http.Handler) http.Handler {
+func (t *TracingMiddleware) EnhanceTracing(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		txn := newrelic.FromContext(r.Context())
 		if txn == nil {
