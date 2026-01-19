@@ -5,6 +5,7 @@ go 1.25.5
 require (
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-playground/validator/v10 v10.30.1
+	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/joho/godotenv v1.5.1
@@ -12,6 +13,8 @@ require (
 	github.com/newrelic/go-agent/v3/integrations/nrgochi v1.0.2
 	github.com/rs/zerolog v1.34.0
 )
+
+require github.com/lib/pq v1.10.9
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
@@ -26,13 +29,13 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/newrelic/go-agent/v3/integrations/logcontext-v2/nrzerolog v1.0.2
 	github.com/newrelic/go-agent/v3/integrations/nrpgx5 v1.3.3
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
-	google.golang.org/grpc v1.65.0 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
+	google.golang.org/grpc v1.74.2 // indirect
+	google.golang.org/protobuf v1.36.7 // indirect
 )
