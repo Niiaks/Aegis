@@ -5,7 +5,7 @@ test:
 	@go test -v ./...
 
 run: build
-	@./bin/backend
+	@./bin/Aegis
 
 migration:
 	@migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
