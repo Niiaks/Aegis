@@ -10,6 +10,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/config"
 	"github.com/Niiaks/Aegis/internal/database"
 	"github.com/Niiaks/Aegis/internal/logger"
+	"github.com/Niiaks/Aegis/internal/redis"
 	"github.com/Niiaks/Aegis/internal/router"
 	"github.com/Niiaks/Aegis/internal/server"
 	"github.com/Niiaks/Aegis/internal/user"
@@ -32,6 +33,10 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to initialize database")
 	}
 
+	_, err = redis.New(&log, &cfg.Redis)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize redis client")
+	}
 	srv, err := server.NewServer(cfg, &log, loggerService, db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create server")

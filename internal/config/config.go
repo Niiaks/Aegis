@@ -51,7 +51,16 @@ type ServerConfig struct {
 }
 
 type RedisConfig struct {
-	Address string
+	Address      string
+	Password     string
+	DB           int
+	PoolSize     int
+	MinIdleConns int
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	LockTTL      time.Duration
+	KeyPrefix    string
 }
 
 type ObservabilityConfig struct {
@@ -167,7 +176,16 @@ func LoadConfig() (*Config, error) {
 			CORSAllowedOrigins: getEnvSlice("AEGIS_SERVER_CORS_ORIGINS", []string{"*"}),
 		},
 		Redis: RedisConfig{
-			Address: getEnv("AEGIS_REDIS_ADDRESS", "localhost:6379"),
+			Address:      getEnv("AEGIS_REDIS_ADDRESS", "localhost:6379"),
+			Password:     getEnv("AEGIS_REDIS_PASSWORD", ""),
+			DB:           getEnvInt("AEGIS_REDIS_DB", 0),
+			PoolSize:     getEnvInt("AEGIS_REDIS_POOL_SIZE", 10),
+			MinIdleConns: getEnvInt("AEGIS_REDIS_MIN_IDLE_CONNS", 5),
+			DialTimeout:  getEnvDuration("AEGIS_REDIS_DIAL_TIMEOUT", 5*time.Second),
+			ReadTimeout:  getEnvDuration("AEGIS_REDIS_READ_TIMEOUT", 3*time.Second),
+			WriteTimeout: getEnvDuration("AEGIS_REDIS_WRITE_TIMEOUT", 3*time.Second),
+			LockTTL:      getEnvDuration("AEGIS_REDIS_LOCK_TTL", 30*time.Second),
+			KeyPrefix:    getEnv("AEGIS_REDIS_KEY_PREFIX", "aegis:"),
 		},
 		Observability: &ObservabilityConfig{
 			ServiceName: "Aegis",
