@@ -153,68 +153,6 @@ Aegis is built with the belief that a system is only as good as its visibility.
 | **Database Tracing**    | pgx query tracer integrated with New Relic                   |
 | **Health Checks**       | Liveness and readiness probes for Kubernetes                 |
 
-## Project Structure
-
-```
-Aegis/
-├── cmd/
-│   └── aegis/                  # Application entry point
-├── internal/
-│   ├── config/                 # Configuration management (koanf)
-│   ├── database/               # PostgreSQL connection pool & tracing
-│   ├── logger/                 # Zerolog + New Relic setup
-│   │
-│   ├── wallet/                 # Domain: Wallet management
-│   │   ├── handler.go
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── ledger/                 # Domain: Double-entry ledger
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── transaction/            # Domain: Payment intents & payouts
-│   │   ├── handler.go
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── outbox/                 # Domain: Event publishing
-│   │   ├── relay.go            # Background worker
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── webhook/                # Domain: PSP webhook handling
-│   │   ├── handler.go
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── reconciliation/         # Domain: Balance reconciliation
-│   │   ├── service.go
-│   │   ├── repository.go
-│   │   └── model.go
-│   │
-│   ├── psp/                    # External: Payment provider adapters
-│   │   └── stripe/
-│   │
-│   └── middleware/             # Cross-cutting: HTTP middleware
-│       ├── idempotency.go
-│       ├── auth.go
-│       └── ratelimit.go
-│
-├── pkg/                        # Reusable utilities
-│   └── money/                  # Money arithmetic helpers
-│
-├── migrations/                 # Database migrations
-├── docs/
-│   └── adr/                    # Architecture Decision Records
-├── docker-compose.yml
-├── Makefile
-└── README.md
-```
 
 ## Architecture Decision Records
 
