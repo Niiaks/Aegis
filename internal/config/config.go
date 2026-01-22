@@ -24,6 +24,7 @@ type Config struct {
 	Redis         RedisConfig
 	Observability *ObservabilityConfig
 	Paystack      PaystackConfig
+	Kafka         KafkaConfig
 }
 
 type PrimaryConfig struct {
@@ -97,6 +98,10 @@ type PaystackConfig struct {
 	PublicKey     string
 	WebhookSecret string
 	BaseURL       string
+}
+
+type KafkaConfig struct {
+	Brokers []string
 }
 
 // Helper functions for parsing env vars
@@ -221,6 +226,9 @@ func LoadConfig() (*Config, error) {
 			PublicKey:     getEnv("AEGIS_PAYSTACK_PUBLIC_KEY", ""),
 			WebhookSecret: getEnv("AEGIS_PAYSTACK_WEBHOOK_SECRET", ""),
 			BaseURL:       getEnv("AEGIS_PAYSTACK_BASE_URL", "https://api.paystack.co"),
+		},
+		Kafka: KafkaConfig{
+			Brokers: []string{"localhost:9092"},
 		},
 	}
 
