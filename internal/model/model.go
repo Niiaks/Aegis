@@ -48,7 +48,7 @@ type Transaction struct {
 	UserID         uuid.UUID `json:"user_id" validate:"required"`
 	Amount         int64     `json:"amount" validate:"required,gte=0"`
 	Currency       string    `json:"currency" validate:"required,len=3"`
-	PspReference   string    `json:"psp_reference" validate:"required"`
+	PspReference   string    `json:"psp_reference"`
 	Status         string    `json:"status" validate:"required,oneof=pending completed failed refunded"`
 	Type           string    `json:"type" validate:"required,oneof=payment_intent payout refund fee"`
 	FailureReason  string    `json:"failure_reason,omitempty"`
