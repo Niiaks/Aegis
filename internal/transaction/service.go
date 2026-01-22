@@ -27,8 +27,9 @@ func NewTransactionService(repo TransactionRepository, redis *redis.Client, pays
 	}
 }
 
-func (ts *TransactionService) PaymentIntent(ctx context.Context, request *types.InitializePaymentRequest, idempotencyKey string) (*types.InitializePaymentResponse, error) {
+func (ts *TransactionService) PaymentIntent(ctx context.Context, request *types.InitializePaymentRequest, idempotencyKey, requestID string) (*types.InitializePaymentResponse, error) {
 	logger := middleware.GetLogger(ctx)
+
 	logger.Info().Msg("Creating payment intent in service layer")
 
 	//check idempotency
@@ -71,7 +72,7 @@ func (ts *TransactionService) PaymentIntent(ctx context.Context, request *types.
 		return nil, fmt.Errorf("failed to initialize payment: %w", err)
 	}
 
-	err = ts.repo.PaymentIntent(ctx, request, idempotencyKey)
+	err = ts.repo.PaymentIntent(ctx, request, idempotencyKey, requestID)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to create payment intent in repository layer")
 		ts.redis.MarkIdempotencyFailed(ctx, idempotencyKey)

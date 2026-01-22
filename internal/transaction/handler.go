@@ -24,6 +24,7 @@ var validate = validator.New()
 func (th *TransactionHandler) PaymentIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	requestID := middleware.GetRequestID(r)
 	logger := middleware.GetLogger(ctx)
 	logger.Info().Msg("Received request to create payment intent")
 
@@ -47,7 +48,7 @@ func (th *TransactionHandler) PaymentIntent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	res, err := th.transactionService.PaymentIntent(ctx, &req, idemKey)
+	res, err := th.transactionService.PaymentIntent(ctx, &req, idemKey, requestID)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to create payment intent")
 		http.Error(w, "Failed to create payment intent: "+err.Error(), http.StatusInternalServerError)
