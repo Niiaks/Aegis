@@ -10,9 +10,11 @@ import (
 	"github.com/Niiaks/Aegis/internal/config"
 	"github.com/Niiaks/Aegis/internal/database"
 	"github.com/Niiaks/Aegis/internal/logger"
+	"github.com/Niiaks/Aegis/internal/psp"
 	"github.com/Niiaks/Aegis/internal/redis"
 	"github.com/Niiaks/Aegis/internal/router"
 	"github.com/Niiaks/Aegis/internal/server"
+	"github.com/Niiaks/Aegis/internal/transaction"
 	"github.com/Niiaks/Aegis/internal/user"
 	"github.com/Niiaks/Aegis/internal/wallet"
 )
@@ -28,12 +30,14 @@ func main() {
 
 	log := logger.NewLoggerWithService(cfg.Observability, loggerService)
 
+	paystackClient := psp.NewPaystackClient(cfg.Paystack.SecretKey)
+
 	db, err := database.New(cfg, &log, loggerService)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize database")
 	}
 
-	_, err = redis.New(&log, &cfg.Redis)
+	redisClient, err := redis.New(&log, &cfg.Redis)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize redis client")
 	}
@@ -44,16 +48,20 @@ func main() {
 
 	userRepo := user.NewUserRepository(db.Pool)
 	walletRepo := wallet.NewWalletRepository(db.Pool)
+	transactionRepo := transaction.NewTransactionRepository(db.Pool)
 
 	userService := user.NewUserService(userRepo)
 	walletService := wallet.NewWalletService(walletRepo)
+	transactionService := transaction.NewTransactionService(transactionRepo, redisClient, paystackClient)
 
 	userHandler := user.NewUserHandler(userService)
 	walletHandler := wallet.NewWalletHandler(walletService)
+	transactionHandler := transaction.NewTransactionHandler(transactionService)
 
 	handlers := &router.Handlers{
-		User:   userHandler,
-		Wallet: walletHandler,
+		User:        userHandler,
+		Wallet:      walletHandler,
+		Transaction: transactionHandler,
 	}
 
 	r := router.NewRouter(srv, handlers)

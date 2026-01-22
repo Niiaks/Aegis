@@ -3,14 +3,16 @@ package router
 import (
 	"github.com/Niiaks/Aegis/internal/middleware"
 	"github.com/Niiaks/Aegis/internal/server"
+	"github.com/Niiaks/Aegis/internal/transaction"
 	"github.com/Niiaks/Aegis/internal/user"
 	"github.com/Niiaks/Aegis/internal/wallet"
 	"github.com/go-chi/chi/v5"
 )
 
 type Handlers struct {
-	User   *user.UserHandler
-	Wallet *wallet.WalletHandler
+	User        *user.UserHandler
+	Wallet      *wallet.WalletHandler
+	Transaction *transaction.TransactionHandler
 }
 
 func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
@@ -35,6 +37,11 @@ func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
 		// Wallet routes
 		r.Route("/wallets", func(r chi.Router) {
 			r.Post("/create", h.Wallet.CreateWallet)
+		})
+
+		//payment routes
+		r.Route("/transactions", func(r chi.Router) {
+			r.Post("/payment-intent", h.Transaction.PaymentIntent)
 		})
 
 	})
