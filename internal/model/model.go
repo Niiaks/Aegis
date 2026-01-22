@@ -65,7 +65,7 @@ type TransactionOutbox struct {
 	RetryCount    int             `json:"retry_count" validate:"gte=0"`
 	LastError     string          `json:"last_error,omitempty"`
 	NextRetryAt   time.Time       `json:"next_retry_at"`
-	MaxRetries    int             `json:"max_retries" validate:"gte=0 default=5"`
+	MaxRetries    int             `json:"max_retries" validate:"gte=0"`
 	Model
 }
 
