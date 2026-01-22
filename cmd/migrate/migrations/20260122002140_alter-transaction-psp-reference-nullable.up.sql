@@ -1,0 +1,1 @@
+ALTER TABLE transactions ALTER COLUMN psp_reference DROP NOT NULL;
