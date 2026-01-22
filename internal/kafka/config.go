@@ -48,7 +48,7 @@ func DefaultConfig(brokers []string) *Config {
 	return &Config{
 		Brokers:           brokers,
 		ProducerTimeout:   10 * time.Second,
-		RequiredAcks:      kgo.Acks{},
+		RequiredAcks:      kgo.AllISRAcks(),
 		SessionTimeout:    10 * time.Second,
 		HeartbeatInterval: 3 * time.Second,
 		MaxPollRecords:    100,
