@@ -23,6 +23,7 @@ type Config struct {
 	Server        ServerConfig
 	Redis         RedisConfig
 	Observability *ObservabilityConfig
+	Paystack      PaystackConfig
 }
 
 type PrimaryConfig struct {
@@ -89,6 +90,13 @@ type HealthChecksConfig struct {
 	Interval time.Duration
 	Timeout  time.Duration
 	Checks   []string
+}
+
+type PaystackConfig struct {
+	SecretKey     string
+	PublicKey     string
+	WebhookSecret string
+	BaseURL       string
 }
 
 // Helper functions for parsing env vars
@@ -207,6 +215,12 @@ func LoadConfig() (*Config, error) {
 				Timeout:  getEnvDuration("AEGIS_HEALTHCHECK_TIMEOUT", 5*time.Second),
 				Checks:   getEnvSlice("AEGIS_HEALTHCHECK_CHECKS", []string{"database", "redis"}),
 			},
+		},
+		Paystack: PaystackConfig{
+			SecretKey:     getEnv("AEGIS_PAYSTACK_SECRET_KEY", ""),
+			PublicKey:     getEnv("AEGIS_PAYSTACK_PUBLIC_KEY", ""),
+			WebhookSecret: getEnv("AEGIS_PAYSTACK_WEBHOOK_SECRET", ""),
+			BaseURL:       getEnv("AEGIS_PAYSTACK_BASE_URL", "https://api.paystack.co"),
 		},
 	}
 
