@@ -9,6 +9,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/config"
 	"github.com/Niiaks/Aegis/internal/database"
 	loggerPkg "github.com/Niiaks/Aegis/internal/logger"
+	"github.com/Niiaks/Aegis/internal/redis"
 	"github.com/rs/zerolog"
 )
 
@@ -18,6 +19,7 @@ type Server struct {
 	httpServer    *http.Server
 	LoggerService *loggerPkg.LoggerService
 	Db            *database.Database
+	redis         *redis.Client
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, ls *loggerPkg.LoggerService, db *database.Database) (*Server, error) {
@@ -58,6 +60,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	if err := s.Db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %w", err)
+	}
+	if err := s.redis.Close(); err != nil {
+		return fmt.Errorf("failed to close redis client: %w", err)
 	}
 	return nil
 }
