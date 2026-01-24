@@ -65,18 +65,18 @@ func (ts *TransactionService) PaymentIntent(ctx context.Context, request *types.
 	// additional checks can be added here
 
 	// Call Paystack to initialize payment
-	paystackRes, err := ts.paystackClient.InitializePayment(ctx, request)
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to initialize payment with Paystack")
-		ts.redis.MarkIdempotencyFailed(ctx, idempotencyKey)
-		return nil, fmt.Errorf("failed to initialize payment: %w", err)
-	}
-
-	err = ts.repo.PaymentIntent(ctx, request, idempotencyKey, requestID)
+	transactionID, err := ts.repo.PaymentIntent(ctx, request, idempotencyKey, requestID)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to create payment intent in repository layer")
 		ts.redis.MarkIdempotencyFailed(ctx, idempotencyKey)
 		return nil, fmt.Errorf("failed to create payment intent: %w", err)
+	}
+
+	paystackRes, err := ts.paystackClient.InitializePayment(ctx, request, transactionID)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to initialize payment with Paystack")
+		ts.redis.MarkIdempotencyFailed(ctx, idempotencyKey)
+		return nil, fmt.Errorf("failed to initialize payment: %w", err)
 	}
 
 	// Cache the successful response for future duplicate requests
