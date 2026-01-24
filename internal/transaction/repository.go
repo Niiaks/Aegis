@@ -10,7 +10,7 @@ import (
 
 var Event string
 
-var PaymentIntentEvent = "aegis.aegis.payment.created"
+var PaymentIntentEvent = "aegis.payment.created"
 
 type TransactionRepository interface {
 	PaymentIntent(ctx context.Context, request *types.InitializePaymentRequest, idempotencyKey, correlationID string) error
