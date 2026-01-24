@@ -14,7 +14,7 @@ type Producer struct {
 	logger *zerolog.Logger
 }
 
-func NewProducer(cfg *Config) (*Producer, error) {
+func NewProducer(cfg *Config, logger *zerolog.Logger) (*Producer, error) {
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(cfg.Brokers...),
 		kgo.ProducerBatchCompression(kgo.SnappyCompression()),
@@ -27,6 +27,7 @@ func NewProducer(cfg *Config) (*Producer, error) {
 	return &Producer{
 		client: client,
 		cfg:    cfg,
+		logger: logger,
 	}, nil
 }
 
