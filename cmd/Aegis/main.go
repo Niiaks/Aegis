@@ -17,6 +17,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/transaction"
 	"github.com/Niiaks/Aegis/internal/user"
 	"github.com/Niiaks/Aegis/internal/wallet"
+	"github.com/Niiaks/Aegis/internal/webhook"
 )
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize redis client")
 	}
-	srv, err := server.NewServer(cfg, &log, loggerService, db)
+	srv, err := server.NewServer(cfg, &log, loggerService, db, redisClient)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create server")
 	}
@@ -57,11 +58,13 @@ func main() {
 	userHandler := user.NewUserHandler(userService)
 	walletHandler := wallet.NewWalletHandler(walletService)
 	transactionHandler := transaction.NewTransactionHandler(transactionService)
+	webhookHandler := webhook.NewWebhookHandler(cfg.Paystack.SecretKey)
 
 	handlers := &router.Handlers{
 		User:        userHandler,
 		Wallet:      walletHandler,
 		Transaction: transactionHandler,
+		Webhook:     webhookHandler,
 	}
 
 	r := router.NewRouter(srv, handlers)
