@@ -40,7 +40,8 @@ func NewPaystackClient(secretKey string) *PaystackClient {
 	}
 }
 
-func (c *PaystackClient) InitializePayment(ctx context.Context, req *types.InitializePaymentRequest) (*types.InitializePaymentResponse, error) {
+func (c *PaystackClient) InitializePayment(ctx context.Context, req *types.InitializePaymentRequest, transactionID string) (*types.InitializePaymentResponse, error) {
+	req.Metadata.TransactionID = transactionID
 	respBody, err := c.doRequest(ctx, http.MethodPost, "/transaction/initialize", req)
 	if err != nil {
 		return nil, err
