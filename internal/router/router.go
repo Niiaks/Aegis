@@ -6,6 +6,7 @@ import (
 	"github.com/Niiaks/Aegis/internal/transaction"
 	"github.com/Niiaks/Aegis/internal/user"
 	"github.com/Niiaks/Aegis/internal/wallet"
+	"github.com/Niiaks/Aegis/internal/webhook"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -13,6 +14,7 @@ type Handlers struct {
 	User        *user.UserHandler
 	Wallet      *wallet.WalletHandler
 	Transaction *transaction.TransactionHandler
+	Webhook     *webhook.WebhookHandler
 }
 
 func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
@@ -44,6 +46,10 @@ func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
 			r.Post("/payment-intent", h.Transaction.PaymentIntent)
 		})
 
+		//webhook route
+		r.Route("/paystack", func(r chi.Router) {
+			r.Post("/webhook", h.Webhook.HandleWebhook)
+		})
 	})
 
 	return r

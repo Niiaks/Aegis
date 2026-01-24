@@ -22,12 +22,13 @@ type Server struct {
 	redis         *redis.Client
 }
 
-func NewServer(cfg *config.Config, logger *zerolog.Logger, ls *loggerPkg.LoggerService, db *database.Database) (*Server, error) {
+func NewServer(cfg *config.Config, logger *zerolog.Logger, ls *loggerPkg.LoggerService, db *database.Database, redis *redis.Client) (*Server, error) {
 	return &Server{
 		Config:        cfg,
 		Logger:        logger,
 		LoggerService: ls,
 		Db:            db,
+		redis:         redis,
 	}, nil
 }
 
@@ -55,14 +56,14 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	if err := s.httpServer.Shutdown(ctx); err != nil {
-		return fmt.Errorf("failed to shutdown HTTP server: %w", err)
-	}
 	if err := s.Db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %w", err)
 	}
 	if err := s.redis.Close(); err != nil {
 		return fmt.Errorf("failed to close redis client: %w", err)
+	}
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown HTTP server: %w", err)
 	}
 	return nil
 }
