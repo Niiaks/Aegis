@@ -5,9 +5,12 @@ type InitializePaymentRequest struct {
 	CallbackURL string `json:"callback_url,omitempty"`
 	Amount      int64  `json:"amount" validate:"required,gte=0"`
 	Currency    string `json:"currency" validate:"required,len=3"`
-	UserID      string `json:"user_id" validate:"required,uuid4"`
-	Status      string `json:"status" validate:"required,oneof=pending"`
-	Type        string `json:"type" validate:"required,oneof=payment_intent"`
+	Metadata    struct {
+		UserID        string `json:"user_id" validate:"required,uuid4"`
+		TransactionID string `json:"transaction_id" validate:"required,uuid4"`
+	}
+	Status string `json:"status" validate:"required,oneof=pending"`
+	Type   string `json:"type" validate:"required,oneof=payment_intent"`
 }
 
 type InitializePaymentResponse struct {
