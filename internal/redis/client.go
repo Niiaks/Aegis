@@ -37,6 +37,7 @@ func New(log *zerolog.Logger, cfg *config.RedisConfig) (*Client, error) {
 	return &Client{
 		rdb:       rdb,
 		keyPrefix: cfg.KeyPrefix,
+		log:       log,
 	}, nil
 }
 
