@@ -9,6 +9,7 @@ import (
 
 	"github.com/Niiaks/Aegis/internal/config"
 	"github.com/Niiaks/Aegis/internal/database"
+	"github.com/Niiaks/Aegis/internal/kafka"
 	"github.com/Niiaks/Aegis/internal/logger"
 	"github.com/Niiaks/Aegis/internal/psp"
 	"github.com/Niiaks/Aegis/internal/redis"
@@ -47,6 +48,13 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to create server")
 	}
 
+	// Initialize Kafka producer for webhook handler
+	kafkaProducer, err := kafka.NewProducer(kafka.DefaultConfig(cfg.Kafka.Brokers), &log)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize kafka producer")
+	}
+	defer kafkaProducer.Close()
+
 	userRepo := user.NewUserRepository(db.Pool)
 	walletRepo := wallet.NewWalletRepository(db.Pool)
 	transactionRepo := transaction.NewTransactionRepository(db.Pool)
@@ -58,7 +66,7 @@ func main() {
 	userHandler := user.NewUserHandler(userService)
 	walletHandler := wallet.NewWalletHandler(walletService)
 	transactionHandler := transaction.NewTransactionHandler(transactionService)
-	webhookHandler := webhook.NewWebhookHandler(cfg.Paystack.SecretKey)
+	webhookHandler := webhook.NewWebhookHandler(cfg.Paystack.SecretKey, kafkaProducer)
 
 	handlers := &router.Handlers{
 		User:        userHandler,
