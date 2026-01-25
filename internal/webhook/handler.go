@@ -4,19 +4,27 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/Niiaks/Aegis/internal/kafka"
 	"github.com/Niiaks/Aegis/internal/middleware"
+	"github.com/Niiaks/Aegis/pkg/types"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WebhookHandler struct {
-	env string
+	env         string
+	kafkaClient *kafka.Producer
+	db          *pgxpool.Pool
 }
 
-func NewWebhookHandler(env string) *WebhookHandler {
+func NewWebhookHandler(env string, kafkaClient *kafka.Producer, db *pgxpool.Pool) *WebhookHandler {
 	return &WebhookHandler{
-		env: env,
+		env:         env,
+		kafkaClient: kafkaClient,
+		db:          db,
 	}
 }
 
@@ -65,5 +73,21 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Msg(string(body))
 	w.WriteHeader(http.StatusOK)
 	//send to kafka here TODO but check event data to send to right kafka consumer
+	var event types.PaystackWebhookEvent
+	json.Unmarshal(body, &event)
+	if event.Event == "charge.success" {
+		// Store in outbox for reliable delivery
+		_, err = h.db.Exec(ctx, `
+			INSERT INTO transaction_outbox (event_type, payload, partition_key, status)
+			VALUES ($1, $2, $3, $4)
+		`, kafka.EventWebhookReceived, body, event.Data.Metadata.UserID, "pending")
 
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to store webhook in outbox")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		logger.Info().Str("event", event.Event).Str("user_id", event.Data.Metadata.UserID).Msg("Webhook stored in outbox")
+	}
 }
