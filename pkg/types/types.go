@@ -7,8 +7,8 @@ type InitializePaymentRequest struct {
 	Currency    string `json:"currency" validate:"required,len=3"`
 	Metadata    struct {
 		UserID        string `json:"user_id" validate:"required,uuid4"`
-		TransactionID string `json:"transaction_id" validate:"required,uuid4"`
-	}
+		TransactionID string `json:"transaction_id"`
+	} `json:"metadata" validate:"required"`
 	Status string `json:"status" validate:"required,oneof=pending"`
 	Type   string `json:"type" validate:"required,oneof=payment_intent"`
 }
