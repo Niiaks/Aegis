@@ -1,203 +1,68 @@
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ EXPONENTIAL BACKOFF │
-│ (Retry with increasing delays) │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ │
-│ WHERE: Outbox Relay, Payout Worker, any PSP call │
-│ │
-│ FLOW: │
-│ │
-│ Attempt 1 ──FAIL──▶ Wait 1s │
-│ Attempt 2 ──FAIL──▶ Wait 2s │
-│ Attempt 3 ──FAIL──▶ Wait 4s │
-│ Attempt 4 ──FAIL──▶ Wait 8s │
-│ Attempt 5 ──FAIL──▶ Wait 16s (cap at 30s) │
-│ Attempt 6 ──FAIL──▶ Move to DLQ │
-│ │
-│ STORED IN DB: │
-│ transaction_outbox.retry_count = 5 │
-│ transaction_outbox.last_error = "stripe: rate limited" │
-│ transaction_outbox.next_retry_at = NOW() + interval │
-│ │
-└─────────────────────────────────────────────────────────────────────────────┘
+# Aegis System Reliability
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ DEAD LETTER QUEUE (DLQ) │
-│ (Poison messages that can't be processed) │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ │
-│ KAFKA TOPICS: │
-│ │
-│ aegis.transactions ◀── Normal events │
-│ aegis.transactions.dlq ◀── Failed after max retries │
-│ aegis.settlements ◀── Normal events │
-│ aegis.settlements.dlq ◀── Failed after max retries │
-│ │
-│ FLOW: │
-│ │
-│ [Kafka Consumer] │
-│ │ │
-│ ├── Process message │
-│ │ │ │
-│ │ ├── SUCCESS ──▶ Commit offset │
-│ │ │ │
-│ │ └── FAIL (after 6 retries) │
-│ │ │ │
-│ │ ▼ │
-│ │ ┌───────────────────┐ │
-│ │ │ Publish to DLQ │ │
-│ │ │ + original error │ │
-│ │ │ + retry count │ │
-│ │ │ + timestamp │ │
-│ │ └───────────────────┘ │
-│ │ │ │
-│ │ ▼ │
-│ │ Alert ops team (New Relic / PagerDuty) │
-│ │ │ │
-│ └────── Commit offset (don't block queue) │
-│ │
-│ DLQ MESSAGE FORMAT: │
-│ { │
-│ "original_topic": "aegis.transactions", │
-│ "original_message": {...}, │
-│ "error": "psp timeout after 30s", │
-│ "retry_count": 6, │
-│ "failed_at": "2026-01-16T10:00:00Z", │
-│ "correlation_id": "tx_xyz" │
-│ } │
-│ │
-│ RECOVERY: │
-│ - Manual inspection via admin tool │
-│ - Fix the issue │
-│ - Replay from DLQ back to main topic │
-│ │
-└─────────────────────────────────────────────────────────────────────────────┘
+This document defines the reliability patterns and failure handling strategies implemented within the Aegis ecosystem to ensure data integrity and high availability.
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ CIRCUIT BREAKER │
-│ (Stop calling a failing service temporarily) │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ │
-│ WHERE: PSP calls (Stripe), any external dependency │
-│ │
-│ STATES: │
-│ │
-│ ┌────────────┐ 5 failures ┌────────────┐ │
-│ │ CLOSED │ ────────────────▶ │ OPEN │ │
-│ │ (normal) │ │ (failing) │ │
-│ └────────────┘ └────────────┘ │
-│ ▲ │ │
-│ │ │ after 30s │
-│ │ ▼ │
-│ │ success ┌─────────────┐ │
-│ └─────────────────────────│ HALF-OPEN │ │
-│ │ (testing) │ │
-│ failure └─────────────┘ │
-│ ┌───────────────────────── │ │
-│ ▼ │ │
-│ ┌────────────┐ │ │
-│ │ OPEN │ ◀──────────────────────┘ │
-│ └────────────┘ │
-│ │
-│ CONFIG: │
-│ - Failure threshold: 5 consecutive failures │
-│ - Open duration: 30 seconds │
-│ - Half-open max requests: 1 (probe) │
-│ │
-│ BEHAVIOR WHEN OPEN: │
-│ - Return cached response if available │
-│ - Return error immediately (fail fast) │
-│ - Queue for retry later (preferred for payments) │
-│ │
-│ USE LIBRARY: sony/gobreaker (battle-tested) │
-│ │
-└─────────────────────────────────────────────────────────────────────────────┘
+## Core Reliability Patterns
 
-═══════════════════════════════════════════════════════════════════════════════
-HOW THEY WORK TOGETHER: PSP CALL EXAMPLE
-═══════════════════════════════════════════════════════════════════════════════
+### 1. External Inflow Reliability (Webhook Outbox)
+To ensure no external payment notification is lost, Aegis employs the Outbox pattern for webhook ingestion.
 
-[Payout Worker] wants to call Stripe
-│
-▼
-┌──────────────────────┐
-│ CHECK CIRCUIT STATE │
-└──────────────────────┘
-│
-├── OPEN? ──▶ Don't call Stripe
-│ Queue for retry (back to outbox)
-│ Return immediately
-│
-└── CLOSED/HALF-OPEN? ──▶ Proceed
-│
-▼
-┌───────────────┐
-│ Call Stripe │
-└───────────────┘
-│
-├── SUCCESS ──▶ Circuit stays CLOSED
-│ Commit transaction
-│
-└── FAILURE ──▶ Increment failure count
-│
-├── Count < 5 ──▶ Exponential backoff
-│ retry_count++
-│ next_retry_at = NOW() + 2^retry_count
-│ Update outbox row
-│
-└── Count >= 5 ──▶ Open circuit
-Move to DLQ
-Alert ops
+- **Persistence**: Upon receiving a webhook, the payload is immediately persisted to the `transaction_outbox` within a local database transaction.
+- **Async Processing**: The Outbox Relay asynchronously delivers the webhook event to the `aegis.webhook.pending` Kafka topic.
+- **Benefit**: Decouples the API from Kafka availability and ensures persistence before acknowledgment to the PSP.
 
-═══════════════════════════════════════════════════════════════════════════════
-UPDATED OUTBOX MODEL
-═══════════════════════════════════════════════════════════════════════════════
+### 2. Distributed Locking
+To prevent race conditions during concurrent wallet updates (e.g., multiple webhooks for the same user or simultaneous payouts), the system utilizes Redis-based distributed locking.
 
-type TransactionOutbox struct {
-ID int64  
- EventType string  
- Payload json.RawMessage
-PartitionKey string  
- Status string // pending | processing | processed | failed | dlq
-CorrelationID uuid.UUID  
- RetryCount int  
- MaxRetries int // default: 6
-LastError string  
- NextRetryAt time.Time // when to retry (for backoff)
-Model
-}
+- **Mechanism**: Workers must acquire a lock on `lock:wallet:{user_id}` before initiating a balance update transaction.
+- **TTL**: Locks are short-lived (e.g., 10s) to prevent deadlocks in case of worker failure.
+- **Atomic Release**: Locks are released using Lua scripts to ensure only the owner can unlock the resource.
 
-═══════════════════════════════════════════════════════════════════════════════
-UPDATED OUTBOX RELAY LOGIC
-═══════════════════════════════════════════════════════════════════════════════
+### 3. Exponential Backoff
+All background workers and the Outbox Relay implement exponential backoff for transient failures (e.g., network timeouts, PSP rate limits).
 
-[Outbox Relay Worker]
-│
-│ // Only pick up messages ready for retry
-│
-├── SELECT \* FROM transaction_outbox
-│ WHERE status IN ('pending', 'failed')
-│ AND (next_retry_at IS NULL OR next_retry_at <= NOW())
-│ ORDER BY id
-│ LIMIT 100
-│ FOR UPDATE SKIP LOCKED
-│
-├── For each message:
-│ │
-│ ├── Check circuit breaker for Kafka
-│ │
-│ ├── TRY: Publish to Kafka
-│ │ │
-│ │ ├── SUCCESS:
-│ │ │ UPDATE SET status = 'processed'
-│ │ │
-│ │ └── FAILURE:
-│ │ IF retry_count >= max_retries:
-│ │ UPDATE SET status = 'dlq'
-│ │ Publish to aegis.outbox.dlq
-│ │ Alert ops
-│ │ ELSE:
-│ │ retry_count++
-│ │ next_retry_at = NOW() + (2^retry_count seconds)
-│ │ last_error = error.message
-│ │ UPDATE SET status = 'failed'
+| Attempt | Delay | Description |
+| :--- | :--- | :--- |
+| 1 | 1s | First retry |
+| 2 | 2s | Second retry |
+| 3 | 4s | Third retry |
+| 4 | 8s | Fourth retry |
+| 5 | 16s | Fifth retry |
+| 6 | - | Move to Dead Letter Queue (DLQ) |
+
+### 4. Dead Letter Queue (DLQ)
+Messages that fail after the maximum number of retries are moved to a Dead Letter Queue for manual inspection.
+
+- **Storage**: Failed messages are published to the `aegis.dlq` topic.
+- **Metadata**: DLQ messages include the original payload, failure reason, retry count, and timestamp.
+- **Alerting**: Publication to the DLQ triggers an automated alert for the operations team.
+
+---
+
+## Failure Handling Workflow
+
+```mermaid
+graph TD
+    Start[Worker Consumes Event] --> Process{Process Event}
+    Process -- Success --> Commit[Commit Kafka Offset]
+    Process -- Transient Error --> Retry{Retry Count < Max?}
+    Retry -- Yes --> Backoff[Wait Exponential Delay]
+    Backoff --> Process
+    Retry -- No --> DLQ[Publish to Dead Letter Queue]
+    DLQ --> Commit
+    Process -- Logical Error --> DLQ
+```
+
+---
+
+## Operational Monitoring
+
+### Circuit Breaker (Planned)
+For external dependencies like Paystack, a circuit breaker pattern is used to prevent cascading failures.
+
+- **Closed State**: Normal operation.
+- **Open State**: If failure threshold is reached (e.g., 5 consecutive errors), the circuit opens, and subsequent calls fail fast without hitting the external service.
+- **Half-Open**: After a cooldown period, a single request is allowed through to test the dependent service.
+
+### Reconciliation
+A daily automated job performs a "Total Integrity Check" by comparing the sum of all Ledger entries against the current Wallet balances. Any discrepancy is logged as a critical alert.
