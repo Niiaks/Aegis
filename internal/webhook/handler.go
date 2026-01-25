@@ -70,9 +70,8 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info().Msg("Webhook signature verified")
-	logger.Info().Msg(string(body))
+
 	w.WriteHeader(http.StatusOK)
-	//send to kafka here TODO but check event data to send to right kafka consumer
 	var event types.PaystackWebhookEvent
 	json.Unmarshal(body, &event)
 	if event.Event == "charge.success" {
