@@ -79,10 +79,12 @@ func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 				Timestamp: record.Timestamp,
 				Headers:   headersToMap(record.Headers),
 			}
-
 			if err := c.processWithRetry(ctx, handler, msg); err != nil {
-				// After all retries failed - will be handled by worker (DLQ)
 				fmt.Printf("message processing failed after retries: %v\n", err)
+				// Send to DLQ
+				if dlqErr := c.publishToDLQ(ctx, msg); dlqErr != nil {
+					fmt.Printf("failed to publish to DLQ: %v\n", dlqErr)
+				}
 			}
 		})
 
@@ -115,6 +117,17 @@ func (c *Consumer) processWithRetry(ctx context.Context, handler Handler, msg *M
 	}
 
 	return fmt.Errorf("max retries exceeded: %w", lastErr)
+}
+func (c *Consumer) publishToDLQ(ctx context.Context, msg *Message) error {
+	record := &kgo.Record{
+		Topic: TopicDLQ,
+		Key:   msg.Key,
+		Value: msg.Value,
+	}
+
+	// Use ProduceSync to wait for the result
+	results := c.client.ProduceSync(ctx, record)
+	return results.FirstErr()
 }
 
 func (c *Consumer) Close() {
