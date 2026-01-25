@@ -23,6 +23,12 @@ const (
 	TopicDLQ = "aegis.dlq"
 )
 
+// Event types for outbox
+const (
+	EventPaymentIntentCreated = "aegis.payment.created"
+	EventWebhookReceived      = "aegis.webhook.received"
+)
+
 // ConsumerGroup names for different Kafka consumers
 const (
 	GroupTransactionWorker = "aegis.transaction.worker"
