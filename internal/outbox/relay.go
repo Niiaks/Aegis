@@ -116,8 +116,10 @@ func (r *Relay) processBatch(ctx context.Context) error {
 
 func (r *Relay) getTopicForEvent(eventType string) string {
 	switch eventType {
-	case "aegis.payment.created":
+	case kafka.EventPaymentIntentCreated:
 		return kafka.TopicPaymentCreated
+	case kafka.EventWebhookReceived:
+		return kafka.TopicWebhookPending
 	default:
 		return kafka.TopicDLQ // Send unknown events to DLQ
 	}
