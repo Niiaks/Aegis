@@ -66,7 +66,7 @@ func main() {
 	userHandler := user.NewUserHandler(userService)
 	walletHandler := wallet.NewWalletHandler(walletService)
 	transactionHandler := transaction.NewTransactionHandler(transactionService)
-	webhookHandler := webhook.NewWebhookHandler(cfg.Paystack.SecretKey, kafkaProducer)
+	webhookHandler := webhook.NewWebhookHandler(cfg.Paystack.SecretKey, kafkaProducer, db.Pool)
 
 	handlers := &router.Handlers{
 		User:        userHandler,
