@@ -38,7 +38,7 @@ func main() {
 	defer redis.Close()
 
 	// Initialize Webhook Worker
-	consumer, err := kafka.NewConsumer(kafka.DefaultConfig(cfg.Kafka.Brokers), kafka.GroupWebhookWorker, "aegis.webhook")
+	consumer, err := kafka.NewConsumer(kafka.DefaultConfig(cfg.Kafka.Brokers), kafka.GroupWebhookWorker, kafka.TopicWebhookPending)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize kafka consumer")
 	}
