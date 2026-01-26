@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/Niiaks/Aegis/internal/database"
@@ -29,15 +30,25 @@ func webhookHandler(db *database.Database, redis *redis.Client, log *zerolog.Log
 			log.Info().Str("reference", event.Data.Reference).Msg("Webhook already processed,skipping")
 			return nil
 		}
+		idStr := fmt.Sprintf("%d", event.Data.ID)
 		//if processed is empty, we insert the webhook into the database
 		if proccessed == "" {
-			_, err := db.Pool.Exec(ctx, "INSERT INTO psp_webhooks (event_id, payload, status,updated_at,created_at) VALUES ($1, $2, $3, $4, $5)", event.Data.ID, event.Data, event.Data.Status, time.Now(), time.Now())
+			_, err := db.Pool.Exec(ctx, "INSERT INTO psp_webhooks (event_id, payload, updated_at, created_at) VALUES ($1, $2, $3, $4)", idStr, msg.Value, time.Now(), time.Now())
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to insert webhook into database")
 				return err
 			}
 			redis.SetIdempotencyKey(ctx, event.Data.Reference, 30*time.Minute)
 		}
+
+		// Acquire distributed lock on user wallet
+		lock, err := redis.AcquireLock(ctx, "wallet:"+event.Data.Metadata.UserID, 10*time.Second)
+		if err != nil {
+			log.Error().Err(err).Str("user_id", event.Data.Metadata.UserID).Msg("Failed to acquire wallet lock")
+			return err // Retry later
+		}
+		defer lock.Release(ctx)
+
 		tx, err := db.Pool.Begin(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to begin transaction")
