@@ -74,12 +74,13 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	var event types.PaystackWebhookEvent
 	json.Unmarshal(body, &event)
+	requrestID := middleware.GetRequestID(r)
 	if event.Event == "charge.success" {
 		// Store in outbox for reliable delivery
 		_, err = h.db.Exec(ctx, `
-			INSERT INTO transaction_outbox (event_type, payload, partition_key, status)
-			VALUES ($1, $2, $3, $4)
-		`, kafka.EventWebhookReceived, body, event.Data.Metadata.UserID, "pending")
+			INSERT INTO transaction_outbox (event_type, payload,correlation_id, partition_key, status)
+			VALUES ($1, $2, $3, $4, $5)
+		`, kafka.EventWebhookReceived, body, requrestID, event.Data.Metadata.UserID, "pending")
 
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to store webhook in outbox")
