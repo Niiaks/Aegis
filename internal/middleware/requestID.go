@@ -50,3 +50,8 @@ func GetRequestIDFromContext(ctx context.Context) string {
 	}
 	return ""
 }
+
+// WithRequestID injects a request ID into the context.
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDContextKey, requestID)
+}

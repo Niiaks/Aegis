@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Niiaks/Aegis/internal/middleware"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -70,6 +71,12 @@ func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 		}
 
 		fetches.EachRecord(func(record *kgo.Record) {
+			headers := headersToMap(record.Headers)
+			ctx := ctx
+			if reqID, ok := headers["X-Request-ID"]; ok {
+				ctx = middleware.WithRequestID(ctx, reqID)
+			}
+
 			msg := &Message{
 				Topic:     record.Topic,
 				Key:       record.Key,
@@ -77,7 +84,7 @@ func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 				Partition: record.Partition,
 				Offset:    record.Offset,
 				Timestamp: record.Timestamp,
-				Headers:   headersToMap(record.Headers),
+				Headers:   headers,
 			}
 			if err := c.processWithRetry(ctx, handler, msg); err != nil {
 				fmt.Printf("message processing failed after retries: %v\n", err)

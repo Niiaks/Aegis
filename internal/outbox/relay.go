@@ -55,7 +55,7 @@ func (r *Relay) processBatch(ctx context.Context) error {
 	defer tx.Rollback(ctx)
 
 	rows, err := tx.Query(ctx, `
-		SELECT id, event_type, payload, partition_key
+		SELECT id, event_type, payload, partition_key, correlation_id
 		FROM transaction_outbox
 		WHERE status = 'pending'
 		ORDER BY id ASC
@@ -69,7 +69,7 @@ func (r *Relay) processBatch(ctx context.Context) error {
 	var events []model.TransactionOutbox
 	for rows.Next() {
 		var e model.TransactionOutbox
-		if err := rows.Scan(&e.ID, &e.EventType, &e.Payload, &e.PartitionKey); err != nil {
+		if err := rows.Scan(&e.ID, &e.EventType, &e.Payload, &e.PartitionKey, &e.CorrelationID); err != nil {
 			rows.Close()
 			return err
 		}
@@ -89,7 +89,12 @@ func (r *Relay) processBatch(ctx context.Context) error {
 	for _, e := range events {
 		topic := r.getTopicForEvent(e.EventType)
 		fmt.Println("the topic is", topic)
-		err := r.kafkaClient.Publish(ctx, topic, []byte(e.PartitionKey), e.Payload)
+
+		headers := map[string]string{
+			"X-Request-ID": e.CorrelationID.String(),
+		}
+
+		err := r.kafkaClient.PublishWithHeaders(ctx, topic, []byte(e.PartitionKey), e.Payload, headers)
 
 		if err != nil {
 			r.logger.Error().Err(err).Int64("event_id", e.ID).Str("event_type", e.EventType).Msg("Failed to publish event to Kafka")
