@@ -1,3 +1,4 @@
 bin
 .env
 scripts/node_modules
+tmp
