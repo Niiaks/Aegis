@@ -1,0 +1,40 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - gofmt
+    - misspell
+    - unparam
+    - nakedret
+    - prealloc
+    - whitespace
+    - goconst
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+  govet:
+    check-shadowing: true
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - goconst
+  max-issues-per-linter: 0
+  max-same-issues: 0
