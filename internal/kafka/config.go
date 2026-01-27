@@ -27,6 +27,7 @@ const (
 const (
 	EventPaymentIntentCreated = "aegis.payment.created"
 	EventWebhookReceived      = "aegis.webhook.received"
+	EventLedgerEntryCreated   = "aegis.ledger.entry.created"
 )
 
 // ConsumerGroup names for different Kafka consumers
