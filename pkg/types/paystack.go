@@ -58,3 +58,10 @@ type PaystackSource struct {
 	EntryPoint string  `json:"entry_point"`
 	Identifier *string `json:"identifier"`
 }
+
+type BalanceUpdateEvent struct {
+	TransactionID string `json:"transaction_id"`
+	UserID        string `json:"user_id"`
+	NetAmount     int64  `json:"net_amount"`
+	Currency      string `json:"currency"`
+}
