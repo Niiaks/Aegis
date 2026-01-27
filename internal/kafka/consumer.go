@@ -82,6 +82,7 @@ func (c *Consumer) Run(ctx context.Context, handler Handler) error {
 			if err := c.processWithRetry(ctx, handler, msg); err != nil {
 				fmt.Printf("message processing failed after retries: %v\n", err)
 				// Send to DLQ
+				fmt.Printf("Sending to DLQ: %v\n", msg)
 				if dlqErr := c.publishToDLQ(ctx, msg); dlqErr != nil {
 					fmt.Printf("failed to publish to DLQ: %v\n", dlqErr)
 				}
