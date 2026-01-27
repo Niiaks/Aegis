@@ -57,15 +57,7 @@ func webhookHandler(db *database.Database, redis *redis.Client, log *zerolog.Log
 		}
 		// insert into wallets(platform,seller,other), insert into ledger_entries
 		// credit this, debit this so that the ledger consumer can process the ledger
-		// use outbox later
 
-		//update transaction reference
-		_, err = tx.Exec(ctx, "UPDATE transactions SET psp_reference = $1, status = $2 WHERE user_id = $3", event.Data.Reference, "completed", event.Data.Metadata.UserID)
-		if err != nil {
-			log.Error().Err(err).Msg("Transaction: Failed to update transaction reference")
-			tx.Rollback(ctx)
-			return err
-		}
 		// Calculate amounts
 		netAmount := event.Data.Amount - (event.Data.Amount * PlatformFee / 100)
 		platformAmount := event.Data.Amount * PlatformFee / 100
@@ -120,15 +112,37 @@ func webhookHandler(db *database.Database, redis *redis.Client, log *zerolog.Log
 			tx.Rollback(ctx)
 			return err
 		}
-		requestID := middleware.GetRequestIDFromContext(ctx)
-		log.Info().Str("request_id", requestID).Msg("Request ID")
-		if requestID == "" {
-			log.Error().Msg("Request ID is empty")
+
+		_, err = tx.Exec(ctx, `UPDATE transactions SET psp_reference = $1, status = 'completed', updated_at = NOW() WHERE id = $2`,
+			event.Data.Reference, event.Data.Metadata.TransactionID)
+		if err != nil {
+			log.Error().Err(err).Msg("Transaction: Failed to mark as completed")
 			tx.Rollback(ctx)
-			return nil
+			return err
 		}
 
-		_, err = tx.Exec(ctx, "INSERT INTO transaction_outbox (event_type, payload, partition_key,correlation_id, status, updated_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)", kafka.EventLedgerEntryCreated, msg.Value, event.Data.Metadata.UserID, requestID, "pending", time.Now(), time.Now())
+		// Prepare balance update payload
+		updateEvent := types.BalanceUpdateEvent{
+			TransactionID: event.Data.Metadata.TransactionID,
+			UserID:        event.Data.Metadata.UserID,
+			NetAmount:     netAmount,
+			Currency:      event.Data.Currency,
+		}
+		payloadBytes, err := json.Marshal(updateEvent)
+		if err != nil {
+			log.Error().Err(err).Msg("Outbox: Failed to marshal balance update event")
+			tx.Rollback(ctx)
+			return err
+		}
+
+		requestID := middleware.GetRequestIDFromContext(ctx)
+		if requestID == "" {
+			requestID = fmt.Sprintf("gen-%s", time.Now().Format("20060102150405")) // Fallback if context is lost
+			log.Warn().Str("new_id", requestID).Msg("Request ID missing in context, generated fallback")
+		}
+		log.Info().Str("request_id", requestID).Msg("Using Correlation ID")
+
+		_, err = tx.Exec(ctx, "INSERT INTO transaction_outbox (event_type, payload, partition_key,correlation_id, status, updated_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)", kafka.EventLedgerEntryCreated, payloadBytes, event.Data.Metadata.UserID, requestID, "pending", time.Now(), time.Now())
 		if err != nil {
 			log.Error().Err(err).Msg("Outbox: Failed to insert ledger entry created event")
 			tx.Rollback(ctx)
