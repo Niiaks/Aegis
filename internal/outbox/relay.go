@@ -120,6 +120,8 @@ func (r *Relay) getTopicForEvent(eventType string) string {
 		return kafka.TopicPaymentCreated
 	case kafka.EventWebhookReceived:
 		return kafka.TopicWebhookPending
+	case kafka.EventLedgerEntryCreated:
+		return kafka.TopicBalanceUpdate
 	default:
 		return kafka.TopicDLQ // Send unknown events to DLQ
 	}
