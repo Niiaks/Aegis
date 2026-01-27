@@ -8,6 +8,7 @@ import (
 
 	"github.com/Niiaks/Aegis/internal/database"
 	"github.com/Niiaks/Aegis/internal/kafka"
+	"github.com/Niiaks/Aegis/internal/middleware"
 	"github.com/Niiaks/Aegis/internal/redis"
 	"github.com/Niiaks/Aegis/pkg/constants"
 	"github.com/Niiaks/Aegis/pkg/types"
@@ -116,6 +117,20 @@ func webhookHandler(db *database.Database, redis *redis.Client, log *zerolog.Log
 		_, err = tx.Exec(ctx, "INSERT INTO ledger_entries (transaction_id,account_id,debit,credit,balance_after,description,updated_at,created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", event.Data.Metadata.TransactionID, constants.AccountPlatformID, 0, platformAmount, platformBalanceAfter, "fee", time.Now(), time.Now())
 		if err != nil {
 			log.Error().Err(err).Msg("Ledger: Failed to insert ledger entry")
+			tx.Rollback(ctx)
+			return err
+		}
+		requestID := middleware.GetRequestIDFromContext(ctx)
+		log.Info().Str("request_id", requestID).Msg("Request ID")
+		if requestID == "" {
+			log.Error().Msg("Request ID is empty")
+			tx.Rollback(ctx)
+			return nil
+		}
+
+		_, err = tx.Exec(ctx, "INSERT INTO transaction_outbox (event_type, payload, partition_key,correlation_id, status, updated_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)", kafka.EventLedgerEntryCreated, msg.Value, event.Data.Metadata.UserID, requestID, "pending", time.Now(), time.Now())
+		if err != nil {
+			log.Error().Err(err).Msg("Outbox: Failed to insert ledger entry created event")
 			tx.Rollback(ctx)
 			return err
 		}
