@@ -21,7 +21,8 @@ In financial systems, "close enough" is a failure. Aegis solves the hardest prob
 | **Database**            | PostgreSQL + pgx    | ACID-compliant transactions with native driver      |
 | **Message Broker**      | Apache Kafka        | Event-driven orchestration via transactional outbox |
 | **Distributed Locking** | Redis               | Idempotency keys and pessimistic locking            |
-| **Observability**       | New Relic + Zerolog | APM, distributed tracing, structured logging        |
+| **Observability**       | Zerolog + Kafka Headers | Structured logging and distributed tracing via Correlation IDs |
+| **Tooling**             | Forego + Air        | Multi-process management and hot-reloading          |
 
 ## Architecture & Design Patterns
 
@@ -44,17 +45,25 @@ To ensure atomicity between the database and Kafka, Aegis uses the **Outbox Patt
 │  │ transactions │ +  │ transaction_outbox (pending) │   │
 │  └──────────────┘    └──────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-              ┌─────────────────────────┐
-              │   Outbox Relay Worker   │
-              │   (polls & publishes)   │
-              └─────────────────────────┘
-                            │
-                            ▼
-                    ┌───────────┐
-                    │   Kafka   │
-                    └───────────┘
+            │                            │
+            ▼                            ▼
+┌───────────────────────┐    ┌─────────────────────────┐
+│   Ingest Service      │    │   Outbox Relay Worker   │
+│ (saves correlation_id)│    │   (polls & publishes)   │
+└───────────────────────┘    └─────────────────────────┘
+                                         │
+                                         ▼
+                                 ┌───────────────┐
+                                 │     Kafka     │
+                                 │ (with Headers)│
+                                 └───────────────┘
+                                         │
+                ┌────────────────────────┴────────────────────────┐
+                ▼                                                 ▼
+     ┌────────────────────┐                            ┌────────────────────┐
+     │   Webhook Worker   │                            │   Balance Worker   │
+     │ (credits locked)   │                            │ (finalizes balance)│
+     └────────────────────┘                            └────────────────────┘
 ```
 
 ### 3. Redis-Backed Idempotency
@@ -124,21 +133,14 @@ Isolates poison messages that fail after maximum retries for manual inspection.
 
 **Kafka Topics:**
 
-- `aegis.transactions` → `aegis.transactions.dlq`
-- `aegis.settlements` → `aegis.settlements.dlq`
+- `aegis.webhook.pending` → Initial webhook ingest
+- `aegis.balance.update` → Ledger signals
+- `aegis.dlq` → Dead Letter Queue for all failed events
 
-**DLQ Message Structure:**
+**Message Lineage (Correlation ID):**
 
-```json
-{
-  "original_topic": "aegis.transactions",
-  "original_message": {...},
-  "error": "psp timeout after 30s",
-  "retry_count": 6,
-  "failed_at": "2026-01-16T10:00:00Z",
-  "correlation_id": "tx_xyz"
-}
-```
+Every event across the system carries an `X-Request-ID` in its Kafka headers. This allows for end-to-end tracing:
+`HTTP Ingest` → `Outbox` → `Kafka Header` → `Go Context` → `Worker Logs`.
 
 **Recovery:** Messages can be replayed from DLQ after fixing root cause.
 
@@ -202,17 +204,37 @@ docker-compose up -d
 make migrate-up
 ```
 
-### Run Aegis
+### Run Full Stack (Best Way)
+
+Aegis uses a `Procfile` to run the API and all workers simultaneously with unified logging.
 
 ```bash
-make run
+# 1. Install Forego (Windows/Unix) or Hivemind
+go install github.com/ddollar/forego@latest
+
+# 2. Start all services
+forego start
 ```
 
-### Run Tests
+### Database Seeding
+
+To quickly populate the database with test users and wallets:
 
 ```bash
-make test
+cd scripts
+npm install
+node seed.js 50  # Seeds 50 users and wallets
 ```
+
+### Manual Run Targets
+
+| Target           | Description                       |
+| ---------------- | --------------------------------- |
+| `make run`       | Runs the main API                 |
+| `make run-relay` | Runs the Outbox Relay             |
+| `make workers`   | Runs all background workers       |
+| `make test`      | Runs comprehensive test suite     |
+| `make migrate-up`| Applies database migrations       |
 
 ## Configuration
 
