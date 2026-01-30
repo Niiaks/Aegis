@@ -25,7 +25,7 @@ func NewRelay(db *pgxpool.Pool, kafkaClient *kafka.Producer, logger *zerolog.Log
 		kafkaClient: kafkaClient,
 		logger:      logger,
 		batchSize:   100,              // Process 100 events at a time
-		interval:    10 * time.Second, // Poll every 100ms
+		interval:    10 * time.Second, // Poll every 10s change to make it freequent like every 100ms
 	}
 }
 
