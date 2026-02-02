@@ -32,7 +32,7 @@ func main() {
 
 	log := logger.NewLoggerWithService(cfg.Observability, loggerService)
 
-	paystackClient := psp.NewPaystackClient(cfg.Paystack.SecretKey)
+	paystackClient := psp.NewPaystackClient(cfg.Paystack.SecretKey, cfg.Paystack.BaseURL)
 
 	db, err := database.New(cfg, &log, loggerService)
 	if err != nil {

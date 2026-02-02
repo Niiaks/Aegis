@@ -24,7 +24,10 @@ type Client interface {
 	CreateTransfer(ctx context.Context)
 }
 
-func NewPaystackClient(secretKey string) *PaystackClient {
+func NewPaystackClient(secretKey, baseURL string) *PaystackClient {
+	if baseURL == "" {
+		baseURL = "https://api.paystack.co"
+	}
 	return &PaystackClient{
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
@@ -36,7 +39,7 @@ func NewPaystackClient(secretKey string) *PaystackClient {
 			},
 		},
 		secretKey: secretKey,
-		baseURL:   "https://api.paystack.co",
+		baseURL:   baseURL,
 	}
 }
 
