@@ -24,8 +24,8 @@ func NewRelay(db *pgxpool.Pool, kafkaClient *kafka.Producer, logger *zerolog.Log
 		db:          db,
 		kafkaClient: kafkaClient,
 		logger:      logger,
-		batchSize:   100,              // Process 100 events at a time
-		interval:    10 * time.Second, // Poll every 10s change to make it freequent like every 100ms
+		batchSize:   500,                    // Process 500 events at a time
+		interval:    100 * time.Millisecond, // Poll every 100ms for high throughput
 	}
 }
 
@@ -95,6 +95,7 @@ func (r *Relay) processBatch(ctx context.Context) error {
 			"X-Request-ID": e.CorrelationID.String(),
 		}
 
+		r.logger.Debug().Str("topic", topic).Msg("Publishing to Kafka...")
 		err := r.kafkaClient.PublishWithHeaders(ctx, topic, []byte(e.PartitionKey), e.Payload, headers)
 
 		if err != nil {
