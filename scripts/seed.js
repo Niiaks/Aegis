@@ -1,10 +1,8 @@
 const { Client } = require('pg');
 const dotenv = require('dotenv');
 const { randomUUID } = require('crypto');
-const path = require('path');
 
-// Load environment variables from the root .env file
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
 
 const config = {
     host: process.env.AEGIS_DB_HOST || '127.0.0.1',
