@@ -54,6 +54,7 @@ func (r *Relay) processBatch(ctx context.Context) error {
 	}
 	defer tx.Rollback(ctx)
 
+	//lock rows for updating while skipping any rows that are already locked by another transaction
 	rows, err := tx.Query(ctx, `
 		SELECT id, event_type, payload, partition_key, correlation_id
 		FROM transaction_outbox
