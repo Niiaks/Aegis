@@ -31,16 +31,6 @@ func NewRouter(s *server.Server, h *Handlers) *chi.Mux {
 
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
-		// User routes
-		r.Route("/users", func(r chi.Router) {
-			r.Post("/register", h.User.CreateUser)
-		})
-
-		// Wallet routes
-		r.Route("/wallets", func(r chi.Router) {
-			r.Post("/create", h.Wallet.CreateWallet)
-		})
-
 		//payment routes
 		r.Route("/transactions", func(r chi.Router) {
 			r.Post("/payment-intent", h.Transaction.PaymentIntent)
