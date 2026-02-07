@@ -50,10 +50,10 @@ This test specifically targets **distributed locking**. It sends 500+ webhooks f
 
 ```bash
 # Windows (PowerShell)
-$env:AEGIS_PAYSTACK_SECRET_KEY="sk_test_a78a298520d863abbadb8712cd78835925424ee2"; k6 run scripts/wallet-concurrency-test.js
+$env:AEGIS_PAYSTACK_SECRET_KEY="sk_test_your_key"; k6 run scripts/wallet-concurrency-test.js
 
 # Unix/macOS
-AEGIS_PAYSTACK_SECRET_KEY=sk_test_a78a298520d863abbadb8712cd78835925424ee2 k6 run scripts/wallet-concurrency-test.js
+AEGIS_PAYSTACK_SECRET_KEY=sk_test_your_key k6 run scripts/wallet-concurrency-test.js
 ```
 
 ---
